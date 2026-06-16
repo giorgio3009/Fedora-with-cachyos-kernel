@@ -1,24 +1,32 @@
 #!/bin/bash
-
 set -ouex pipefail
 
-### Install packages
+# 1. Abilitazione Repositories
+# Installa i repository RPMFusion (necessari per i driver NVIDIA)
+dnf5 install -y https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm
+dnf5 install -y https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$(rpm -E %fedora).noarch.rpm
 
-# Packages can be installed from any enabled yum repo on the image.
-# RPMfusion repos are available by default in ublue main images
-# List of rpmfusion packages can be found here:
-# https://mirrors.rpmfusion.org/mirrorlist?path=free/fedora/updates/43/x86_64/repoview/index.html&protocol=https&redirect=1
+# Installa il repository COPR di CachyOS
+dnf5 install -y 'dnf-command(copr)'
+dnf5 copr enable -y srakitnican/cachyos
 
-# this installs a package from fedora repos
-dnf5 install -y tmux 
+# 2. Installazione Kernel CachyOS
+# Si consiglia kernel-cachyos per sistemi desktop
+dnf5 install -y kernel-cachyos
 
-# Use a COPR Example:
-#
-# dnf5 -y copr enable ublue-os/staging
-# dnf5 -y install package
-# Disable COPRs so they don't end up enabled on the final image:
-# dnf5 -y copr disable ublue-os/staging
+# 3. Installazione GNOME
+# Installa l'intero ambiente desktop Fedora Workstation
+dnf5 groupinstall -y "Fedora Workstation"
 
-#### Example for enabling a System Unit File
+# 4. Configurazione Driver NVIDIA
+# Utilizziamo akmod per permettere al sistema di ricompilare i driver ad ogni update del kernel
+dnf5 install -y akmod-nvidia
 
-systemctl enable podman.socket
+# 5. Abilitazione Servizi
+systemctl enable gdm.service
+systemctl enable nvidia-suspend.service
+systemctl enable nvidia-hibernate.service
+systemctl enable nvidia-resume.service
+
+# 6. Pulizia
+dnf5 clean all
