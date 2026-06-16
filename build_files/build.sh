@@ -3,7 +3,8 @@ set -ouex pipefail
 
 # 1. Enable Repositories
 # Install the plugin required for dnf5 to manage COPR repositories
-dnf5 install -y dnf-plugins-core
+dnf5 search plugins-core
+#dnf5 install -y dnf-plugins-core
 # Enable the CachyOS COPR repository
 dnf5 copr enable -y srakitnican/cachyos
 
