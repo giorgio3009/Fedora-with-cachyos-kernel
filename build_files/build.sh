@@ -1,33 +1,45 @@
 #!/bin/bash
 set -ouex pipefail
 
-# 1. Enable Repositories
-# Download CachyOS repo directly to bypass dnf5 plugin issues
-echo "Downloading CachyOS repository configuration..."
-curl -o /etc/yum.repos.d/cachyos.repo https://copr.fedorainfracloud.org/coprs/srakitnican/cachyos/repo/fedora-$(rpm -E %fedora)/srakitnican-cachyos-fedora-$(rpm -E %fedora).repo
+### 1. DNF Speedup
+# Velocizza il download dei pacchetti
+sed -i '/^\[main\]/a max_parallel_downloads=10' /etc/dnf/dnf.conf
 
-# Install RPMFusion repositories (required for NVIDIA drivers)
-dnf5 install -y https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm
-dnf5 install -y https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$(rpm -E %fedora).noarch.rpm
+### 2. Add Repositories
+# Aggiunta manuale di CachyOS (metodo robusto)
+cat <<EOF > /etc/yum.repos.d/cachyos.repo
+[srakitnican-cachyos]
+name=Copr repo for cachyos owned by srakitnican
+baseurl=https://download.copr.fedorainfracloud.org/results/srakitnican/cachyos/fedora-\$releasever-\$basearch/
+type=rpm-md
+skip_if_unavailable=True
+gpgcheck=1
+gpgkey=https://download.copr.fedorainfracloud.org/results/srakitnican/cachyos/pubkey.gpg
+repo_gpgcheck=0
+enabled=1
+enabled_metadata=1
+EOF
 
-# 2. Install CachyOS Kernel
-# kernel-cachyos is recommended for desktop use
-dnf5 install -y kernel-cachyos
+# Installazione RPMFusion
+dnf install -y https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm \
+               https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$(rpm -E %fedora).noarch.rpm
 
-# 3. Install GNOME Desktop Environment
-# Installs the complete Fedora Workstation environment
-dnf5 groupinstall -y "Fedora Workstation"
+### 3. Install Packages
+# Kernel CachyOS e GNOME
+dnf install -y kernel-cachyos
+dnf groupinstall -y "Fedora Workstation"
 
-# 4. Configure NVIDIA Drivers
-# Using akmod ensures drivers are automatically rebuilt for the CachyOS kernel
-dnf5 install -y akmod-nvidia
+# Driver NVIDIA (akmod compila i driver per il nuovo kernel)
+dnf install -y akmod-nvidia
 
-# 5. Enable System Services
+### 4. Enable Services
 systemctl enable gdm.service
+systemctl enable podman.socket
 systemctl enable nvidia-suspend.service
 systemctl enable nvidia-hibernate.service
 systemctl enable nvidia-resume.service
 
-# 6. Cleanup
-# Remove cached data to keep the image size minimal
-dnf5 clean all
+### 5. Cleanup
+# Pulizia approfondita per mantenere l'immagine piccola
+dnf clean all
+rm -rf /run/dnf /run/selinux-policy /var/lib/dnf
