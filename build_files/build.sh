@@ -25,10 +25,11 @@ dnf5 install -y https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release
                 https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$(rpm -E %fedora).noarch.rpm
 
 ### 3. Install Packages
-# Pulizia del kernel di default per evitare errori del linter bootc
-dnf5 remove -y kernel kernel-core kernel-modules --allowerasing
+# Rimuoviamo il kernel di default per soddisfare il linter di bootc
+# Se dovesse fallire perché il kernel è "protetto", dnf5 solitamente lo gestisce in autonomia
+dnf5 remove -y kernel kernel-core kernel-modules
 
-# Installazione Kernel CachyOS
+# Installazione Kernel CachyOS (usando noscripts per evitare dracut)
 dnf5 install -y kernel-cachyos --setopt=tsflags=noscripts
 
 # Aggiornamento metadati e Installazione Ambiente Desktop
