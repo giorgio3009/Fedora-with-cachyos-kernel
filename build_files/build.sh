@@ -29,7 +29,7 @@ dnf install -y https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-
 dnf install -y kernel-cachyos --setopt=tsflags=noscripts
 
 # Installazione Ambiente Desktop
-dnf5 group install -y "Fedora Workstation"
+dnf5 group install -y workstation-product-environment
 
 # Driver NVIDIA (akmod compilerà i moduli al primo boot)
 dnf install -y akmod-nvidia
