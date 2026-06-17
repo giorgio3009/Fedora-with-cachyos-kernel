@@ -6,7 +6,7 @@ set -ouex pipefail
 sed -i '/^\[main\]/a max_parallel_downloads=10' /etc/dnf/dnf.conf
 
 ### 2. Add Repositories
-# Aggiunta del repository CachyOS (bieszczaders)
+# Aggiunta del repository CachyOS
 cat <<EOF > /etc/yum.repos.d/cachyos.repo
 [copr-cachyos]
 name=Copr repo for kernel-cachyos owned by bieszczaders
@@ -25,28 +25,31 @@ dnf5 install -y https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release
                 https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$(rpm -E %fedora).noarch.rpm
 
 ### 3. Install Packages
-# Rimuoviamo il kernel di default per soddisfare il linter di bootc
-# Se dovesse fallire perché il kernel è "protetto", dnf5 solitamente lo gestisce in autonomia
-dnf5 remove -y kernel kernel-core kernel-modules
+# Installazione Kernel CachyOS (senza noscripts per permettere a dracut di girare)
+dnf5 install -y kernel-cachyos
 
-# Installazione Kernel CachyOS (usando noscripts per evitare dracut)
-dnf5 install -y kernel-cachyos --setopt=tsflags=noscripts
+# Installazione dipendenze per compilazione moduli (necessarie per NVIDIA/akmod)
+dnf5 install -y kernel-devel gcc gcc-c++ make
 
-# Aggiornamento metadati e Installazione Ambiente Desktop
-dnf5 makecache
+# Installazione Ambiente Desktop
 dnf5 group install -y workstation-product-environment
 
 # Driver NVIDIA
 dnf5 install -y akmod-nvidia
 
-### 4. Enable Services
+### 4. Ensure Initramfs generation
+# Forza la rigenerazione di tutte le immagini initramfs per sicurezza
+for kver in $(ls /lib/modules); do
+    dracut -f "/boot/initramfs-${kver}.img" "${kver}"
+done
+
+### 5. Enable Services
 systemctl enable gdm.service
 systemctl enable podman.socket
 systemctl enable nvidia-suspend.service
 systemctl enable nvidia-hibernate.service
 systemctl enable nvidia-resume.service
 
-### 5. Cleanup
-# Pulizia finale per ridurre le dimensioni dell'immagine
+### 6. Cleanup
 dnf5 clean all
 rm -rf /run/dnf /run/selinux-policy /var/lib/dnf
