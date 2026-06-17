@@ -1,18 +1,17 @@
-# Usa la base bootc ufficiale
-FROM quay.io/fedora/fedora-bootc:44
-
-# 1. Installazione Kernel (Gestita direttamente qui)
-# bootc/rpm-ostree vedrà questo comando e configurerà il sistema per avviare questo kernel
-RUN dnf install -y kernel-cachyos && dnf clean all
-
-# 2. Setup build script
+# 1. Definisci prima lo stage 'ctx' (che copia i file locali)
 FROM scratch AS ctx
 COPY build_files /
 
-# 3. Esecuzione script di configurazione
+# 2. Definisci l'immagine principale
+FROM quay.io/fedora/fedora-bootc:44
+
+# 3. Installa il kernel (ora gestito da bootc/rpm-ostree)
+RUN dnf install -y kernel-cachyos && dnf clean all
+
+# 4. Esegui il build script usando lo stage 'ctx' definito sopra
 RUN --mount=type=bind,from=ctx,source=/,target=/ctx \
     --mount=type=cache,dst=/var/cache \
     /ctx/build.sh
 
-# 4. Linting finale
+# 5. Linting
 RUN bootc container lint
